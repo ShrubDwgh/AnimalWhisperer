@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Animal Whisperer — Translate Animal Sounds</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0f0d;
+    --surface: #111a15;
+    --card: #162019;
+    --border: #1e3025;
+    --accent: #4ade80;
+    --accent2: #86efac;
+    --accent-dim: rgba(74,222,128,0.12);
+    --text: #e8f5ec;
+    --muted: #6b8f76;
+    --danger: #f87171;
+    --warn: #fbbf24;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 20% 80%, rgba(74,222,128,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 80% 20%, rgba(34,197,94,0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 80% at 50% 50%, rgba(16,30,20,0.8) 0%, transparent 100%);
+    pointer-events: none;
+  }
+  body::after {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  /* ── Top Nav ── */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background: rgba(10,15,13,0.88);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(30,48,37,0.6);
+  }
+  .topbar-brand {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-style: italic;
+    color: var(--accent);
+  }
+  .topbar-brand span { color: var(--text); font-style: normal; }
+
+  .menu-wrap { position: relative; }
+  .dots-btn {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+    font-size: 20px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    line-height: 1;
+    padding-bottom: 4px;
+  }
+  .dots-btn:hover { color: var(--text); border-color: var(--muted); }
+
+  .dropdown {
+    position: absolute; top: calc(100% + 10px); right: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    width: 280px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+    opacity: 0; pointer-events: none;
+    transform: translateY(-8px) scale(0.97);
+    transition: all 0.22s ease;
+    z-index: 100;
+  }
+  .dropdown.open {
+    opacity: 1; pointer-events: all;
+    transform: translateY(0) scale(1);
+  }
+  .dropdown-title {
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .setting-row {
+    display: flex; flex-direction: column; gap: 7px;
+    margin-bottom: 14px;
+  }
+  .setting-row:last-of-type { margin-bottom: 0; }
+  .setting-row label {
+    font-size: 12px; color: var(--muted); font-weight: 500;
+  }
+  select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 9px 32px 9px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+    cursor: pointer;
+    width: 100%;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b8f76' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+  select:focus { border-color: rgba(74,222,128,0.4); }
+  select option { background: #162019; }
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .range-row {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--muted);
+  }
+  .divider { height: 1px; background: var(--border); margin: 14px 0; }
+  .dropdown-info {
+    font-size: 11px; color: var(--muted); line-height: 1.7;
+  }
+  .dropdown-info strong { color: var(--accent); }
+
+  /* ── Container ── */
+  .container {
+    position: relative; z-index: 1;
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 100px 24px 80px;
+  }
+
+  /* ── Header ── */
+  header { text-align: center; margin-bottom: 44px; }
+  .logo-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(74,222,128,0.2);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-size: 11px; font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .logo-badge .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 700; line-height: 1.1; margin-bottom: 12px;
+  }
+  h1 em { font-style: italic; color: var(--accent); }
+  .subtitle {
+    color: var(--muted); font-size: 15px; font-weight: 300;
+    max-width: 400px; margin: 0 auto; line-height: 1.6;
+  }
+
+  /* ── Recorder Card ── */
+  .recorder-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 44px 40px 36px;
+    text-align: center;
+    margin-bottom: 20px;
+    position: relative; overflow: hidden;
+  }
+  .recorder-card::before {
+    content: '';
+    position: absolute; top: -50px; left: 50%; transform: translateX(-50%);
+    width: 280px; height: 100px;
+    background: radial-gradient(ellipse, rgba(74,222,128,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .visualizer-wrap {
+    margin: 0 auto 28px;
+    position: relative; width: 200px; height: 200px;
+  }
+  .mic-btn {
+    position: absolute; inset: 0; margin: auto;
+    width: 90px; height: 90px; border-radius: 50%; border: none;
+    background: linear-gradient(135deg, #1a2e1f, #0f1e13);
+    color: var(--text); font-size: 34px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s;
+    box-shadow:
+      0 0 0 1px rgba(74,222,128,0.25),
+      0 6px 24px rgba(0,0,0,0.4),
+      inset 0 1px 0 rgba(255,255,255,0.04);
+    z-index: 2;
+  }
+  .mic-btn:hover { transform: scale(1.06); }
+  .mic-btn.active {
+    background: linear-gradient(135deg, #1e3d28, #102417);
+    animation: micPulse 2s infinite;
+  }
+  @keyframes micPulse {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(74,222,128,0.6), 0 0 40px rgba(74,222,128,0.12), inset 0 1px 0 rgba(255,255,255,0.05); }
+    50% { box-shadow: 0 0 0 8px rgba(74,222,128,0.1), 0 0 60px rgba(74,222,128,0.18), inset 0 1px 0 rgba(255,255,255,0.05); }
+  }
+  canvas#wave {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+  }
+
+  .recorder-status {
+    font-size: 15px; color: var(--muted);
+    margin-bottom: 10px; min-height: 22px; transition: color 0.3s;
+  }
+  .recorder-status.active { color: var(--accent); }
+  .recorder-status.detecting { color: var(--warn); }
+  .recorder-status.error { color: var(--danger); }
+
+  .animal-detected {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(251,191,36,0.08);
+    border: 1px solid rgba(251,191,36,0.2);
+    border-radius: 100px; padding: 5px 16px;
+    font-size: 13px; color: var(--warn);
+    min-height: 30px; transition: opacity 0.3s;
+  }
+  .animal-detected.visible { opacity: 1; }
+  .animal-detected.hidden { opacity: 0; }
+
+  /* ── Translations ── */
+  .translation-area {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px; overflow: hidden; margin-bottom: 20px;
+  }
+  .translation-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 22px; border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.015);
+  }
+  .translation-header .title {
+    font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted); font-weight: 500;
+  }
+  .clear-btn {
+    font-size: 12px; color: var(--muted);
+    background: none; border: none; cursor: pointer;
+    transition: color 0.2s; font-family: 'DM Sans', sans-serif;
+  }
+  .clear-btn:hover { color: var(--danger); }
+
+  .translations-list {
+    padding: 4px 0; max-height: 360px; overflow-y: auto;
+  }
+  .translations-list::-webkit-scrollbar { width: 3px; }
+  .translations-list::-webkit-scrollbar-track { background: transparent; }
+  .translations-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .translation-item {
+    padding: 16px 22px; border-bottom: 1px solid rgba(30,48,37,0.4);
+    display: grid; grid-template-columns: auto 1fr; gap: 14px;
+    align-items: start; animation: slideIn 0.35s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .translation-item:last-child { border-bottom: none; }
+  .animal-icon {
+    width: 42px; height: 42px; border-radius: 12px;
+    background: var(--accent-dim); border: 1px solid rgba(74,222,128,0.12);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .translation-meta {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 5px;
+  }
+  .animal-name {
+    font-size: 11px; font-weight: 600; color: var(--accent);
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .translation-time { font-size: 11px; color: var(--muted); }
+  .translation-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px; line-height: 1.55; color: var(--text);
+  }
+  .translation-sound { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  .typing-indicator {
+    display: flex; align-items: center; gap: 5px; padding: 18px 22px;
+  }
+  .typing-indicator span {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent); animation: bounce 1.2s infinite;
+  }
+  .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce {
+    0%, 80%, 100% { transform: scale(0.55); opacity: 0.35; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+
+  .empty-state {
+    padding: 52px 24px; text-align: center;
+    color: var(--muted); font-size: 14px;
+  }
+  .empty-state .icon { font-size: 34px; margin-bottom: 10px; opacity: 0.35; }
+
+  .info-footer { display: flex; gap: 10px; flex-wrap: wrap; }
+  .info-chip {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 9px 14px;
+    font-size: 12px; color: var(--muted);
+    display: flex; align-items: center; gap: 7px;
+    flex: 1; min-width: 155px;
+  }
+
+  @media (max-width: 580px) {
+    .recorder-card { padding: 28px 20px; }
+    .topbar { padding: 14px 16px; }
+    .container { padding: 86px 16px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="topbar-brand"><span>Animal</span> Whisperer</div>
+  <div class="menu-wrap">
+    <button class="dots-btn" onclick="toggleMenu()">⋮</button>
+    <div class="dropdown" id="dropdown">
+      <div class="dropdown-title">Settings</div>
+
+      <div class="setting-row">
+        <label>Output Language</label>
+        <select id="langSelect">
+          <option value="English">🇬🇧 English</option>
+          <option value="Indonesian">🇮🇩 Indonesian</option>
+          <option value="Japanese">🇯🇵 Japanese</option>
+          <option value="Spanish">🇪🇸 Spanish</option>
+          <option value="French">🇫🇷 French</option>
+          <option value="German">🇩🇪 German</option>
+          <option value="Korean">🇰🇷 Korean</option>
+          <option value="Chinese">🇨🇳 Chinese</option>
+          <option value="Arabic">🇸🇦 Arabic</option>
+          <option value="Portuguese">🇧🇷 Portuguese</option>
+        </select>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="setting-row">
+        <label>Sensitivity — <span id="sensVal">5</span>/10</label>
+        <input type="range" id="sensitivitySlider" min="1" max="10" value="5"
+          oninput="sensitivity=parseInt(this.value); document.getElementById('sensVal').textContent=this.value">
+        <div class="range-row"><span>Low</span><span>High</span></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="dropdown-info">
+        • Powered by <strong>Gemini AI</strong> (Free)<br>
+        • Audio stays on your device only
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+  <header>
+    <div class="logo-badge"><span class="dot"></span> AI Powered</div>
+    <h1>Animal <em>Whisperer</em></h1>
+    <p class="subtitle">Point your microphone at an animal and we'll translate what they're saying — in real time.</p>
+  </header>
+
+  <div class="recorder-card">
+    <div class="visualizer-wrap">
+      <canvas id="wave" width="200" height="200"></canvas>
+      <button class="mic-btn" id="micBtn" onclick="toggleRecording()">🎙️</button>
+    </div>
+    <div class="recorder-status" id="statusText">Click the microphone to start listening</div>
+    <div class="animal-detected hidden" id="animalTag"></div>
+  </div>
+
+  <div class="translation-area">
+    <div class="translation-header">
+      <span class="title">Translations</span>
+      <button class="clear-btn" onclick="clearTranslations()">Clear all</button>
+    </div>
+    <div class="translations-list" id="translationsList">
+      <div class="empty-state">
+        <div class="icon">🐾</div>
+        <div>No translations yet. Start listening!</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-footer">
+    <div class="info-chip"> Only animal sounds are translated</div>
+    <div class="info-chip">translate what your pet is talking about</div>
+    <div class="info-chip"> Audio never leaves your device</div>
+  </div>
+</div>
+
+<script>
+const API_KEY = 'AIzaSyCGXgpoC3wqp-we6TvvF07urWeroQYhn_c';
+
+let isRecording = false;
+let audioCtx, analyser, microphone, animFrame;
+let lastTranslateTime = 0;
+let translating = false;
+let typingEl = null;
+let sensitivity = 5;
+
+const ANIMALS = {
+  cat:   { emoji: '🐱', name: 'Cat',   sounds: ['Meow', 'Purr', 'Hiss', 'Chirp'] },
+  dog:   { emoji: '🐶', name: 'Dog',   sounds: ['Woof', 'Bark', 'Whine', 'Howl'] },
+  bird:  { emoji: '🐦', name: 'Bird',  sounds: ['Tweet', 'Chirp', 'Whistle', 'Sing'] },
+  cow:   { emoji: '🐄', name: 'Cow',   sounds: ['Moo', 'Low'] },
+  frog:  { emoji: '🐸', name: 'Frog',  sounds: ['Ribbit', 'Croak'] },
+  horse: { emoji: '🐴', name: 'Horse', sounds: ['Neigh', 'Whinny'] },
+};
+
+// Dropdown
+function toggleMenu() {
+  document.getElementById('dropdown').classList.toggle('open');
+}
+document.addEventListener('click', e => {
+  if (!document.querySelector('.menu-wrap').contains(e.target))
+    document.getElementById('dropdown').classList.remove('open');
+});
+
+// Recording
+function toggleRecording() {
+  isRecording ? stopRecording() : startRecording();
+}
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0.8;
+    microphone = audioCtx.createMediaStreamSource(stream);
+    microphone.connect(analyser);
+    isRecording = true;
+    document.getElementById('micBtn').classList.add('active');
+    document.getElementById('micBtn').textContent = '⏹';
+    showStatus('Listening for animal sounds...', 'active');
+    drawWave();
+    detectLoop();
+  } catch(e) {
+    showStatus('Microphone access denied', 'error');
+  }
+}
+
+function stopRecording() {
+  isRecording = false;
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+  cancelAnimationFrame(animFrame);
+  document.getElementById('micBtn').classList.remove('active');
+  document.getElementById('micBtn').textContent = '🎙️';
+  showStatus('Click the microphone to start listening', '');
+  hideAnimalTag();
+  clearCanvas();
+}
+
+// Waveform
+function drawWave() {
+  if (!isRecording) return;
+  animFrame = requestAnimationFrame(drawWave);
+  const canvas = document.getElementById('wave');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  const dataArr = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteTimeDomainData(dataArr);
+  const rms = getRMS();
+  [90+rms*30, 70+rms*20, 50+rms*10].forEach((r, i) => {
+    ctx.beginPath();
+    ctx.arc(W/2, H/2, r, 0, Math.PI*2);
+    ctx.strokeStyle = `rgba(74,222,128,${0.04+i*0.03+rms*0.08})`;
+    ctx.lineWidth = 1; ctx.stroke();
+  });
+  const sliceW = W / dataArr.length;
+  ctx.beginPath();
+  ctx.strokeStyle = `rgba(74,222,128,${0.45+rms*0.55})`;
+  ctx.lineWidth = 1.5;
+  let x = 0;
+  for (let i = 0; i < dataArr.length; i++) {
+    const y = H/2 + (dataArr[i]/128 - 1) * H * 0.38;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    x += sliceW;
+  }
+  ctx.stroke();
+}
+
+function clearCanvas() {
+  const c = document.getElementById('wave');
+  c.getContext('2d').clearRect(0, 0, c.width, c.height);
+}
+
+function getRMS() {
+  if (!analyser) return 0;
+  const data = new Uint8Array(analyser.fftSize);
+  analyser.getByteTimeDomainData(data);
+  let sum = 0;
+  for (let v of data) { const d = (v-128)/128; sum += d*d; }
+  return Math.sqrt(sum/data.length);
+}
+
+// Detection
+function detectLoop() {
+  if (!isRecording) return;
+  setTimeout(detectLoop, 200);
+  const rms = getRMS();
+  if (rms < 0.03 + (10-sensitivity)*0.008) { hideAnimalTag(); return; }
+
+  const freqData = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(freqData);
+  const binHz = audioCtx.sampleRate / analyser.fftSize;
+
+  let maxAmp = 0, domBin = 0;
+  for (let i = 0; i < freqData.length; i++) if (freqData[i] > maxAmp) { maxAmp = freqData[i]; domBin = i; }
+  const domHz = domBin * binHz;
+
+  const speech = spectral(freqData, binHz, 300, 3000);
+  const low    = spectral(freqData, binHz, 50, 300);
+  const high   = spectral(freqData, binHz, 2000, 8000);
+
+  const isAnimal = (domHz<200||domHz>2000||high>0.4||low>0.5||rms>0.15) && !(speech>0.6&&rms<0.2);
+
+  if (!isAnimal) {
+    showStatus('Non-animal sound — ignoring...', 'detecting');
+    hideAnimalTag(); return;
+  }
+
+  const key = classifyAnimal(domHz, high, low, rms);
+  showAnimalTag(key);
+  showStatus('Animal sound detected!', 'active');
+
+  const now = Date.now();
+  if (!translating && now - lastTranslateTime > 3500) {
+    lastTranslateTime = now;
+    translate(key, rms);
+  }
+}
+
+function spectral(data, binHz, fMin, fMax) {
+  const s = Math.floor(fMin/binHz), e = Math.floor(fMax/binHz);
+  let sum = 0;
+  for (let i = s; i < Math.min(e, data.length); i++) sum += data[i];
+  return sum / ((e-s)*255);
+}
+
+function classifyAnimal(hz, high, low, rms) {
+  if (low > 0.45) return 'cow';
+  if (high > 0.5) return 'bird';
+  if (hz < 600 && rms > 0.12) return 'dog';
+  if (hz >= 300 && hz <= 1500) return 'cat';
+  if (hz > 100 && hz < 800 && rms < 0.1) return 'frog';
+  return ['cat','dog','bird','horse','frog'][Math.floor(Math.random()*5)];
+}
+
+// AI Translation
+async function translate(animalKey, rms) {
+  translating = true;
+  const animal = ANIMALS[animalKey];
+  const lang = document.getElementById('langSelect').value;
+  const sound = animal.sounds[Math.floor(Math.random()*animal.sounds.length)];
+  const intensity = rms>0.2 ? 'loud and urgent' : rms>0.1 ? 'moderate' : 'soft and quiet';
+
+  showTyping();
+  try {
+    const prompt = `You are an animal language translator. A ${animal.name} just made a "${sound}" sound that was ${intensity}. Translate what the ${animal.name} is most likely communicating into ${lang}. Be creative, funny, and realistic. Keep it to 1-2 short sentences. Respond ONLY with the translation text, nothing else.`;
+
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: 150, temperature: 1.1 }
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    addTranslation(animal, sound, data.candidates[0].content.parts[0].text.trim());
+  } catch(e) {
+    showStatus('Error: ' + e.message.slice(0,50), 'error');
+    setTimeout(() => showStatus(isRecording ? 'Listening for animal sounds...' : 'Click the microphone to start listening', isRecording ? 'active' : ''), 3000);
+  } finally {
+    removeTyping();
+    translating = false;
+  }
+}
+
+// UI
+function showStatus(msg, cls) {
+  const el = document.getElementById('statusText');
+  el.textContent = msg;
+  el.className = 'recorder-status ' + (cls||'');
+}
+function showAnimalTag(key) {
+  const a = ANIMALS[key];
+  const el = document.getElementById('animalTag');
+  el.textContent = `${a.emoji} ${a.name} detected`;
+  el.className = 'animal-detected visible';
+}
+function hideAnimalTag() {
+  document.getElementById('animalTag').className = 'animal-detected hidden';
+}
+function addTranslation(animal, sound, text) {
+  const list = document.getElementById('translationsList');
+  list.querySelector('.empty-state')?.remove();
+  const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+  const item = document.createElement('div');
+  item.className = 'translation-item';
+  item.innerHTML = `
+    <div class="animal-icon">${animal.emoji}</div>
+    <div>
+      <div class="translation-meta">
+        <span class="animal-name">${animal.name}</span>
+        <span class="translation-time">${time}</span>
+      </div>
+      <div class="translation-text">${text}</div>
+      <div class="translation-sound">Sound: "${sound}"</div>
+    </div>`;
+  list.insertBefore(item, list.firstChild);
+}
+function showTyping() {
+  const list = document.getElementById('translationsList');
+  list.querySelector('.empty-state')?.remove();
+  typingEl = document.createElement('div');
+  typingEl.className = 'typing-indicator';
+  typingEl.innerHTML = '<span></span><span></span><span></span>';
+  list.insertBefore(typingEl, list.firstChild);
+}
+function removeTyping() {
+  if (typingEl) { typingEl.remove(); typingEl = null; }
+}
+function clearTranslations() {
+  document.getElementById('translationsList').innerHTML =
+    `<div class="empty-state"><div class="icon">🐾</div><div>No translations yet. Start listening!</div></div>`;
+}
+</script>
+</body>
+</html>
